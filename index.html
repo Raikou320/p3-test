@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="fr">
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Test Display-P3 / CSS Color 4</title>
+<style>
+  body { font-family: system-ui, -apple-system, Arial; padding: 20px; background:#111; color:#eee; }
+  .row { display:flex; gap:12px; align-items:center; margin-bottom:16px; flex-wrap:wrap; }
+  .swatch { width:120px; height:120px; border-radius:8px; box-shadow:0 6px 14px rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.06); }
+  .label { width:260px; max-width:40vw; font-size:14px; color:#ddd; }
+  .result { margin-top:12px; padding:10px; border-radius:8px; background:rgba(255,255,255,.03); font-size:13px; }
+  .ok { color:#8ef; }
+  .warn { color:#f9a; }
+</style>
+<body>
+  <h1>Test Display-P3 & CSS Color 4</h1>
+
+  <p>Ce test compare : <strong>color(display-p3 ...)</strong> vs <strong>rgb(...)</strong> et détecte la prise en charge via CSS/JS.</p>
+
+  <div class="row">
+    <div class="label">P3 rouge pur (color(display-p3))</div>
+    <div id="swatch-p3" class="swatch"></div>
+    <div class="label">Fallback sRGB (rgb(255,0,0))</div>
+    <div id="swatch-srgb" class="swatch"></div>
+  </div>
+
+  <div class="row">
+    <div class="label">P3 saturé (color(display-p3 0 1 0.2))</div>
+    <div id="swatch-p3b" class="swatch"></div>
+    <div class="label">sRGB equivalent (rgb(0,255,51))</div>
+    <div id="swatch-srgbb" class="swatch"></div>
+  </div>
+
+  <div class="result" id="info">Détection en cours…</div>
+
+<script>
+  // Applique les couleurs (CSS Color 4) si le navigateur comprend la fonction,
+  // sinon les navigateurs ignoreront la propriété et on verra le fallback.
+  const p3 = 'color(display-p3 1 0 0)';
+  const p3b = 'color(display-p3 0 1 0.2)';
+  const srgb = 'rgb(255,0,0)';
+  const srgbb = 'rgb(0,255,51)';
+
+  const swatchP3 = document.getElementById('swatch-p3');
+  const swatchSRGB = document.getElementById('swatch-srgb');
+  const swatchP3b = document.getElementById('swatch-p3b');
+  const swatchSRGBb = document.getElementById('swatch-srgbb');
+
+  // Définis d'abord les fallbacks sRGB (compatibilité max)
+  swatchP3.style.background = srgb;
+  swatchSRGB.style.background = srgb;
+  swatchP3b.style.background = srgbb;
+  swatchSRGBb.style.background = srgbb;
+
+  // Puis essaye d'appliquer la valeur p3 (si le moteur CSS la sait, elle prendra effet)
+  try {
+    swatchP3.style.background = p3;
+    swatchP3b.style.background = p3b;
+  } catch(e) {
+    // Certains browsers lèvent pas d'erreur mais ignorent la valeur
+  }
+
+  // Détection via CSS media feature
+  const info = document.getElementById('info');
+  const supportsP3 = window.matchMedia && window.matchMedia('(color-gamut: p3)').matches;
+  const supportsWide = window.matchMedia && window.matchMedia('(color-gamut: wide)').matches;
+  const supportsSRGB = window.matchMedia && window.matchMedia('(color-gamut: srgb)').matches;
+
+  let lines = [];
+  lines.push(`@media color-gamut: p3 → ${supportsP3 ? 'oui' : 'non'}`);
+  lines.push(`@media color-gamut: wide → ${supportsWide ? 'oui' : 'non'}`);
+  lines.push(`@media color-gamut: srgb → ${supportsSRGB ? 'oui' : 'non'}`);
+
+  // Mesure visuelle simple : on lit computedStyle pour voir si le navigateur a retenu la valeur p3
+  const cs = getComputedStyle(swatchP3).backgroundColor || '';
+  const cs2 = getComputedStyle(swatchP3b).backgroundColor || '';
+  lines.push('');
+  lines.push('computedStyle pour le swatch P3 : ' + cs);
+  lines.push('computedStyle pour le swatch P3b: ' + cs2);
+
+  info.innerText = lines.join('\n');
+
+  // Conseils visuels
+  const advice = document.createElement('div');
+  advice.className = 'result';
+  advice.innerHTML = `
+    <strong>Interprétation rapide :</strong>
+    <ul>
+      <li>Si les cases P3 sont visiblement plus saturées que leurs fallbacks → ton écran + navigateur affichent du wide-gamut.</li>
+      <li>Si @media indique <code>p3: non</code> mais l'écran paraît vif → c'est probablement un étirement fabricant (mode Vivid) au niveau système.</li>
+      <li>Si tout est identique → navigateur ou webview n'expose pas P3 (ou le contenu est ramené en sRGB).</li>
+    </ul>
+  `;
+  document.body.appendChild(advice);
+</script>
+</body>
+</html>
